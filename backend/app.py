@@ -7,15 +7,20 @@ import os
 import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from agent import create_agent, process_query
-from prompts import get_example_queries
 from config import BACKEND_PORT, DEBUG
 
-# Configure logging
+# Configure logging BEFORE importing agent to capture all logs
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    force=True
 )
+# Set root logger to INFO to capture all module logs
+logging.getLogger().setLevel(logging.INFO)
+
+from agent import create_agent, process_query
+from prompts import get_example_queries
+
 logger = logging.getLogger(__name__)
 
 # Create Flask app
