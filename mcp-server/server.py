@@ -7,11 +7,8 @@ import os
 import json
 import logging
 from flask import Flask, request, jsonify
-from dotenv import load_dotenv
 from tools import create_tools
-
-# Load environment variables
-load_dotenv()
+from config import OPENWEATHER_API_KEY, MCP_SERVER_PORT, DEBUG
 
 # Configure logging
 logging.basicConfig(
@@ -25,12 +22,11 @@ app = Flask(__name__)
 app.config['JSON_SORT_KEYS'] = False
 
 # Initialize tools
-API_KEY = os.getenv('OPENWEATHER_API_KEY')
-if not API_KEY:
+if not OPENWEATHER_API_KEY:
     logger.error("OPENWEATHER_API_KEY environment variable not set")
     raise ValueError("OPENWEATHER_API_KEY environment variable not set")
 
-TOOLS = create_tools(API_KEY)
+TOOLS = create_tools(OPENWEATHER_API_KEY)
 
 
 @app.route('/health', methods=['GET'])
@@ -162,6 +158,5 @@ def not_found(error):
 
 
 if __name__ == '__main__':
-    port = int(os.getenv('MCP_SERVER_PORT', 8001))
-    logger.info(f"Starting MCP Server on port {port}")
-    app.run(debug=True, port=port, host='0.0.0.0')
+    logger.info(f"Starting MCP Server on port {MCP_SERVER_PORT}")
+    app.run(debug=DEBUG, port=MCP_SERVER_PORT, host='0.0.0.0')

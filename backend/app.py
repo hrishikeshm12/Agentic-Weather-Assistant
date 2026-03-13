@@ -7,12 +7,9 @@ import os
 import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from dotenv import load_dotenv
 from agent import create_agent, process_query
 from prompts import get_example_queries
-
-# Load environment variables
-load_dotenv()
+from config import BACKEND_PORT, DEBUG
 
 # Configure logging
 logging.basicConfig(
@@ -143,6 +140,5 @@ def internal_error(error):
 
 
 if __name__ == '__main__':
-    port = int(os.getenv('BACKEND_PORT', 8000))
-    logger.info(f"Starting Backend Agent Server on port {port}")
-    app.run(debug=True, port=port, host='0.0.0.0')
+    logger.info(f"Starting Backend Agent Server on port {BACKEND_PORT}")
+    app.run(debug=DEBUG, port=BACKEND_PORT, host='0.0.0.0')
