@@ -143,6 +143,15 @@ body {
 }
 
 /* Markdown styling */
+.message-content div {
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.message-content div:last-child {
+    margin-bottom: 0;
+}
+
 .message-content strong {
     font-weight: 700;
     color: inherit;
@@ -168,6 +177,15 @@ body {
 
 .message.user .message-content code {
     background: rgba(255, 255, 255, 0.2);
+}
+
+/* Bullet points */
+.message-content div {
+    padding-left: 0;
+}
+
+.message-content div br {
+    line-height: 1.8;
 }
 
 .message.user .message-content {

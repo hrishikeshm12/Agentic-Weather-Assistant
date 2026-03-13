@@ -222,13 +222,17 @@ function parseMarkdown(text) {
     // Code: `code` -> <code>code</code>
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-    // Line breaks
-    html = html.replace(/\n/g, '<br>');
+    // Handle paragraphs: split by double newlines, keep single newlines within paragraphs
+    let paragraphs = html.split(/\n\n+/);
+    paragraphs = paragraphs.map(para => {
+        // Convert bullet points: - item -> • item (with proper spacing)
+        para = para.replace(/^\s*-\s+/gm, '• ');
+        // Convert single newlines to <br>
+        para = para.replace(/\n/g, '<br>');
+        return `<div style="margin-bottom: 10px; line-height: 1.6;">${para}</div>`;
+    });
 
-    // Bullet points: - item -> • item
-    html = html.replace(/^- /gm, '• ');
-
-    return html;
+    return paragraphs.join('');
 }
 
 /**
