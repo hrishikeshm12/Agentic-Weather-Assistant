@@ -144,25 +144,8 @@ function addMessage(content, role = 'user') {
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
 
-    // Format content with markdown support
-    let formattedContent = escapeHtml(content);
-
-    // Convert markdown to HTML
-    // Bold: **text** -> <strong>text</strong>
-    formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-    // Italic: *text* -> <em>text</em> (but not in bold)
-    formattedContent = formattedContent.replace(/(?<!\*)\*(.*?)\*(?!\*)/g, '<em>$1</em>');
-
-    // Line breaks
-    formattedContent = formattedContent.replace(/\n/g, '<br>');
-
-    // Code blocks: `code` -> <code>code</code>
-    formattedContent = formattedContent.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-    // Bullet points: - item -> • item
-    formattedContent = formattedContent.replace(/^- /gm, '• ');
-
+    // Parse markdown and format content
+    const formattedContent = parseMarkdown(content);
     messageContent.innerHTML = formattedContent;
 
     messageDiv.appendChild(messageContent);
@@ -216,6 +199,36 @@ async function checkBackendHealth() {
             'error'
         );
     }
+}
+
+/**
+ * Parse markdown and convert to safe HTML
+ */
+function parseMarkdown(text) {
+    // Escape HTML first
+    const div = document.createElement('div');
+    div.textContent = text;
+    let html = div.innerHTML;
+
+    // Now convert markdown (on already-escaped HTML)
+    // This prevents XSS while allowing markdown rendering
+
+    // Bold: **text** -> <strong>text</strong>
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // Italic: *text* -> <em>text</em> (but not in bold)
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // Code: `code` -> <code>code</code>
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Line breaks
+    html = html.replace(/\n/g, '<br>');
+
+    // Bullet points: - item -> • item
+    html = html.replace(/^- /gm, '• ');
+
+    return html;
 }
 
 /**
