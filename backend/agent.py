@@ -131,7 +131,7 @@ class WeatherAgent:
                 raise ValueError("ANTHROPIC_API_KEY not set")
 
         self.client = Anthropic(api_key=api_key)
-        self.model = "claude-3-5-sonnet-20241022"
+        self.model = "claude-opus-4-1"
 
     def process_query(self, user_query: str) -> str:
         """Process a user query with tool calling"""
@@ -152,7 +152,7 @@ class WeatherAgent:
 
                 response = self.client.messages.create(
                     model=self.model,
-                    max_tokens=2048,
+                    max_tokens=512,
                     system=get_system_prompt(),
                     tools=self.TOOLS,
                     messages=messages

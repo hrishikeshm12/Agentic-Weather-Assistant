@@ -17,6 +17,7 @@ else:
 
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '').strip('"\'')
 MCP_SERVER_URL = os.getenv('MCP_SERVER_URL', 'http://localhost:8001')
+BACKEND_PORT = int(os.getenv('BACKEND_PORT', 8000))
 FLASK_ENV = os.getenv('FLASK_ENV', 'development')
 DEBUG = FLASK_ENV == 'development'
 
