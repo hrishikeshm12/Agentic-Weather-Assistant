@@ -52,7 +52,7 @@ An end-to-end agentic application that combines OpenWeather API integration, an 
 ## Setup & Installation
 
 ### Prerequisites
-- Python 3.10+
+- Python 3.10 to 3.13 (3.11 recommended; 3.14+ is not supported by current LangChain/Pydantic dependencies)
 - Node.js 16+ (for frontend)
 - OpenWeather API key (free tier: https://openweathermap.org/api)
 - Anthropic Claude API key (https://console.anthropic.com)

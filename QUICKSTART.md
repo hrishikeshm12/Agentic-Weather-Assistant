@@ -6,6 +6,11 @@
 ✅ API keys configured
 ✅ Ready to run!
 
+## Python Version
+- Recommended: Python `3.11`
+- Supported: Python `3.10` to `3.13`
+- Not supported for current dependency set: Python `3.14+`
+
 ## Running the Application
 
 ### Windows Users
@@ -20,11 +25,11 @@ This will start both the MCP Server and Backend Agent in separate terminal windo
 ```bash
 # Terminal 1: Start MCP Server (port 8001)
 cd mcp-server
-../venv/Scripts/python server.py
+..\venv\Scripts\python.exe server.py
 
 # Terminal 2: Start Backend Agent (port 8000)
 cd backend
-../venv/Scripts/python app.py
+..\venv\Scripts\python.exe app.py
 
 # Terminal 3: Open Frontend
 # Open frontend/index.html in your browser
@@ -107,7 +112,7 @@ lsof -ti:8000 | xargs kill -9
 ### Missing Dependencies
 ```bash
 # Reinstall in venv
-./venv/Scripts/pip install -r requirements.txt
+.\venv\Scripts\pip.exe install -r requirements.txt
 ```
 
 ### API Key Issues
