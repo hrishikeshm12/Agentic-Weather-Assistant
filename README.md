@@ -1,6 +1,6 @@
 # AI Builder Project: Agentic Weather Assistant
 
-An end-to-end agentic application that combines OpenWeather API integration, an MCP Server wrapper, and LangChain-powered LLM agents to provide intelligent weather insights.
+An end-to-end agentic application that combines OpenWeather API integration, an MCP Server wrapper, and Claude AI with native tool use for intelligent weather insights.
 
 ## Architecture Overview
 
@@ -39,8 +39,8 @@ An end-to-end agentic application that combines OpenWeather API integration, an 
 
 ### 2. Backend Agent (`/backend`)
 - Flask HTTP server
-- LangChain integration for tool calling
-- Claude API integration for intelligent responses
+- Claude API with native tool use for intelligent responses
+- Direct integration with MCP Server tools
 - Prompt engineering for contextual weather analysis
 
 ### 3. Frontend (`/frontend`)
@@ -52,8 +52,7 @@ An end-to-end agentic application that combines OpenWeather API integration, an 
 ## Setup & Installation
 
 ### Prerequisites
-- Python 3.10 to 3.13 (3.11 recommended; 3.14+ is not supported by current LangChain/Pydantic dependencies)
-- Node.js 16+ (for frontend)
+- Python 3.10+
 - OpenWeather API key (free tier: https://openweathermap.org/api)
 - Anthropic Claude API key (https://console.anthropic.com)
 
@@ -73,47 +72,51 @@ EOF
 ### Step 2: Install Dependencies
 
 ```bash
-# Backend dependencies
-cd backend
-pip install -r requirements.txt
-cd ..
+# Create virtual environment
+python -m venv venv
 
-# MCP Server dependencies
-cd mcp-server
-pip install -r requirements.txt
-cd ..
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
 
-# Frontend dependencies (optional, if using Node)
-cd frontend
-npm install
-cd ..
+# Install all dependencies
+pip install -r requirements.txt
 ```
 
 ### Step 3: Run the Application
 
+**Windows (Recommended):**
+```bash
+# Simply double-click or run:
+start-all.bat
+```
+
+This will automatically start all three services in separate terminal windows.
+
+**Manual (All Platforms):**
+
 **Terminal 1: Start MCP Server**
 ```bash
-cd mcp-server
-python server.py
+python mcp-server/server.py
 # Server runs on http://localhost:8001
 ```
 
 **Terminal 2: Start Backend Agent**
 ```bash
-cd backend
-python app.py
+python backend/app.py
 # Server runs on http://localhost:8000
 ```
 
 **Terminal 3: Run Frontend**
 ```bash
 cd frontend
-# Option A: Open index.html in browser (if static)
-# Option B: If using Node
-npm run dev
+python -m http.server 8002
+# Frontend runs on http://localhost:8002
 ```
 
-Then open your browser to `http://localhost:8000` (or port shown in frontend output).
+Then open your browser to `http://localhost:8002`.
 
 ## Usage
 
@@ -184,7 +187,8 @@ Searches for cities by name.
 - **Extensibility**: Easy to add new weather data providers
 
 ### LLM Agent Design
-- **Tool Definitions**: Clear, descriptive tool schemas for LangChain
+- **Tool Definitions**: Clear, descriptive tool schemas following Claude's native tool use format
+- **Agentic Loop**: Handles tool calling, result processing, and multi-step reasoning
 - **Prompt Engineering**: System prompt guides agent to provide contextual weather analysis
 - **Error Handling**: Graceful fallbacks when tools fail or data is unavailable
 
@@ -235,14 +239,14 @@ Services run in isolated containers with proper networking.
 
 ### Debugging
 ```bash
-# Enable verbose logging
-export DEBUG=True
-
-# Check MCP Server logs
+# Check MCP Server health
 curl http://localhost:8001/health
 
+# Check Backend Agent health
+curl http://localhost:8000/health
+
 # Test backend agent directly
-curl -X POST http://localhost:8000/agent \
+curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
   -d '{"query": "What is the weather in London?"}'
 ```
