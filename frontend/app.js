@@ -144,9 +144,24 @@ function addMessage(content, role = 'user') {
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
 
-    // Format content (convert newlines, basic markdown)
+    // Format content with markdown support
     let formattedContent = escapeHtml(content);
+
+    // Convert markdown to HTML
+    // Bold: **text** -> <strong>text</strong>
+    formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // Italic: *text* -> <em>text</em> (but not in bold)
+    formattedContent = formattedContent.replace(/(?<!\*)\*(.*?)\*(?!\*)/g, '<em>$1</em>');
+
+    // Line breaks
     formattedContent = formattedContent.replace(/\n/g, '<br>');
+
+    // Code blocks: `code` -> <code>code</code>
+    formattedContent = formattedContent.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Bullet points: - item -> • item
+    formattedContent = formattedContent.replace(/^- /gm, '• ');
 
     messageContent.innerHTML = formattedContent;
 

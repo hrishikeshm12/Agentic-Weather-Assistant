@@ -139,7 +139,35 @@ body {
     border-radius: 8px;
     word-wrap: break-word;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
+}
+
+/* Markdown styling */
+.message-content strong {
+    font-weight: 700;
+    color: inherit;
+}
+
+.message-content em {
+    font-style: italic;
+    color: inherit;
+}
+
+.message-content code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.message.agent .message-content code {
+    background: rgba(0, 0, 0, 0.15);
+    color: #2c3e50;
+}
+
+.message.user .message-content code {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .message.user .message-content {
