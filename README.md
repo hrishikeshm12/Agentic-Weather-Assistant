@@ -6,7 +6,7 @@ An end-to-end agentic application that combines OpenWeather API integration, an 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        USER (Browser)                          │
+│                        USER (Browser)                           │
 │                    http://localhost:8002                        │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ HTTP (REST)
@@ -14,23 +14,23 @@ An end-to-end agentic application that combines OpenWeather API integration, an 
 ┌─────────────────────────────────────────────────────────────────┐
 │                 BACKEND AGENT SERVER (Flask)                    │
 │                    http://localhost:8000                        │
-│                                                                │
-│  ┌──────────────┐  ┌─────────────────┐  ┌──────────────────┐  │
-│  │ Conversation │  │  Claude API     │  │  Prompt          │  │
-│  │ History      │  │  (Tool Use)     │  │  Engineering     │  │
-│  │ Management   │  │  Agentic Loop   │  │  System Prompt   │  │
-│  └──────────────┘  └────────┬────────┘  └──────────────────┘  │
+│                                                                 │
+│  ┌──────────────┐  ┌─────────────────┐  ┌──────────────────┐    │
+│  │ Conversation │  │  Claude API     │  │  Prompt          │    │
+│  │ History      │  │  (Tool Use)     │  │  Engineering     │    │
+│  │ Management   │  │  Agentic Loop   │  │  System Prompt   │    │
+│  └──────────────┘  └────────┬────────┘  └──────────────────┘    │
 └─────────────────────────────┼───────────────────────────────────┘
                               │ JSON-RPC 2.0
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    MCP SERVER (Flask)                           │
 │                    http://localhost:8001                        │
-│                                                                │
-│  ┌──────────────────┐  ┌──────────────┐  ┌─────────────────┐  │
-│  │ get_current_     │  │ get_forecast │  │ search_cities   │  │
-│  │ weather          │  │              │  │                 │  │
-│  └────────┬─────────┘  └──────┬───────┘  └────────┬────────┘  │
+│                                                                 │
+│  ┌──────────────────┐  ┌──────────────┐  ┌─────────────────┐    │
+│  │ get_current_     │  │ get_forecast │  │ search_cities   │    │
+│  │ weather          │  │              │  │                 │    │
+│  └────────┬─────────┘  └──────┬───────┘  └────────┬───────┘     │
 └───────────┼───────────────────┼────────────────────┼────────────┘
             │                   │                    │
             └───────────────────┼────────────────────┘
