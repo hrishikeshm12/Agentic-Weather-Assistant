@@ -87,11 +87,12 @@ def query_agent():
 
         logger.info(f"Received query: {user_query}")
 
-        # Process query through agent
-        response = process_query(agent, user_query)
+        # Process query through agent (returns dict with text + tool_calls)
+        result = process_query(agent, user_query)
 
         return jsonify({
-            'response': response,
+            'response': result['text'],
+            'tool_calls': result.get('tool_calls', []),
             'success': True
         }), 200
 
@@ -109,6 +110,15 @@ def get_examples():
     return jsonify({
         'examples': get_example_queries()
     }), 200
+
+
+@app.route('/reset', methods=['POST'])
+def reset_conversation():
+    """Reset the agent's conversation history"""
+    if agent:
+        agent.clear_history()
+        logger.info("Conversation history cleared")
+    return jsonify({'success': True, 'message': 'Conversation reset'}), 200
 
 
 @app.route('/', methods=['GET'])

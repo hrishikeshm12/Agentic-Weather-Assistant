@@ -5,49 +5,72 @@ An end-to-end agentic application that combines OpenWeather API integration, an 
 ## Architecture Overview
 
 ```
-┌─────────────────┐
-│   Frontend App  │
-│  (React/HTML)   │
-└────────┬────────┘
-         │ HTTP
-         ↓
-┌─────────────────────────┐
-│  Backend Agent Server   │
-│  (Flask + LangChain)    │
-└────────┬────────────────┘
-         │ JSON-RPC
-         ↓
-┌─────────────────────────┐
-│   MCP Server Wrapper    │
-│  (OpenWeather API)      │
-└────────┬────────────────┘
-         │ HTTP
-         ↓
-┌─────────────────────────┐
-│   OpenWeather API       │
-│   (Third-party Service) │
-└─────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        USER (Browser)                          │
+│                    http://localhost:8002                        │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ HTTP (REST)
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                 BACKEND AGENT SERVER (Flask)                    │
+│                    http://localhost:8000                        │
+│                                                                │
+│  ┌──────────────┐  ┌─────────────────┐  ┌──────────────────┐  │
+│  │ Conversation │  │  Claude API     │  │  Prompt          │  │
+│  │ History      │  │  (Tool Use)     │  │  Engineering     │  │
+│  │ Management   │  │  Agentic Loop   │  │  System Prompt   │  │
+│  └──────────────┘  └────────┬────────┘  └──────────────────┘  │
+└─────────────────────────────┼───────────────────────────────────┘
+                              │ JSON-RPC 2.0
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    MCP SERVER (Flask)                           │
+│                    http://localhost:8001                        │
+│                                                                │
+│  ┌──────────────────┐  ┌──────────────┐  ┌─────────────────┐  │
+│  │ get_current_     │  │ get_forecast │  │ search_cities   │  │
+│  │ weather          │  │              │  │                 │  │
+│  └────────┬─────────┘  └──────┬───────┘  └────────┬────────┘  │
+└───────────┼───────────────────┼────────────────────┼────────────┘
+            │                   │                    │
+            └───────────────────┼────────────────────┘
+                                │ HTTPS
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    OpenWeather API                              │
+│              api.openweathermap.org (External)                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+## Key Features
+
+- **Agentic AI**: Claude autonomously decides which tools to call, processes results, and synthesizes natural language responses
+- **Multi-turn Conversations**: Agent maintains conversation history for contextual follow-up questions
+- **Tool Call Transparency**: Frontend displays which MCP tools the agent called and their results
+- **MCP Architecture**: Clean separation between API wrapper (MCP Server) and AI reasoning (Backend Agent)
+- **JSON-RPC 2.0**: Standard protocol for tool invocation between Backend and MCP Server
 
 ## Components
 
 ### 1. MCP Server (`/mcp-server`)
-- Wraps OpenWeather API calls
+- Wraps OpenWeather API calls into standardized tools
 - Exposes tools: `get_current_weather`, `get_forecast`, `search_cities`
-- Implements JSON-RPC 2.0 protocol
-- Handles API key management securely
+- Implements JSON-RPC 2.0 protocol for tool calling
+- Handles API key management securely (never exposed to frontend)
 
 ### 2. Backend Agent (`/backend`)
-- Flask HTTP server
-- Claude API with native tool use for intelligent responses
-- Direct integration with MCP Server tools
+- Flask HTTP server with CORS support
+- Claude API with native tool use (agentic loop pattern)
+- Conversation history for multi-turn interactions
+- Tool call metadata returned to frontend for transparency
 - Prompt engineering for contextual weather analysis
 
 ### 3. Frontend (`/frontend`)
-- Simple HTML/CSS/JavaScript interface
-- Real-time chat interaction
-- Display weather data with AI insights
-- Responsive design
+- Vanilla HTML/CSS/JavaScript chat interface
+- Displays agent tool calls in real-time (agent transparency)
+- Markdown rendering with XSS prevention
+- "New Chat" button to reset conversation context
+- Responsive design for desktop and mobile
 
 ## Setup & Installation
 
@@ -66,6 +89,7 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 FLASK_ENV=development
 MCP_SERVER_PORT=8001
 BACKEND_PORT=8000
+MCP_SERVER_URL=http://localhost:8001
 EOF
 ```
 
@@ -93,163 +117,96 @@ pip install -r requirements.txt
 start-all.bat
 ```
 
-This will automatically start all three services in separate terminal windows.
+This opens three terminal windows, one for each service.
 
 **Manual (All Platforms):**
 
-**Terminal 1: Start MCP Server**
 ```bash
-python mcp-server/server.py
-# Server runs on http://localhost:8001
-```
+# Terminal 1: MCP Server
+python mcp-server/server.py       # http://localhost:8001
 
-**Terminal 2: Start Backend Agent**
-```bash
-python backend/app.py
-# Server runs on http://localhost:8000
-```
+# Terminal 2: Backend Agent
+python backend/app.py             # http://localhost:8000
 
-**Terminal 3: Run Frontend**
-```bash
-cd frontend
-python -m http.server 8002
-# Frontend runs on http://localhost:8002
+# Terminal 3: Frontend
+cd frontend && python -m http.server 8002   # http://localhost:8002
 ```
 
 Then open your browser to `http://localhost:8002`.
 
 ## Usage
 
-1. Open the web app in your browser
+1. Open `http://localhost:8002` in your browser
 2. Ask the agent about weather in any city:
    - "What's the weather in New York?"
    - "Will it rain in London tomorrow?"
    - "Compare weather in Tokyo and Sydney"
 3. The agent will:
-   - Use the MCP Server tools to fetch weather data
-   - Analyze the data using Claude
+   - Autonomously select and call MCP tools
+   - Display which tools were called (visible in the chat)
    - Provide intelligent, contextual responses
+4. Ask follow-up questions - the agent remembers conversation context
+5. Click "New Chat" to start a fresh conversation
+
+## How the Agentic Loop Works
+
+```
+User Query → Claude API (with tool definitions)
+                    │
+                    ├── Claude decides to call tools → MCP Server → OpenWeather API
+                    │                                      │
+                    │   ← Tool results returned ───────────┘
+                    │
+                    ├── Claude may call more tools (multi-step reasoning)
+                    │
+                    └── Claude generates final natural language response → User
+```
+
+The agent can make multiple tool calls per query (e.g., fetching weather for two cities to compare them), and the loop continues until Claude decides it has enough information to respond.
 
 ## API Reference
 
-### MCP Server Tools
+### Backend Endpoints
 
-#### `get_current_weather`
-Returns current weather for a city.
-```json
-{
-  "city": "string",
-  "country": "string",
-  "temperature": "number (Celsius)",
-  "condition": "string",
-  "humidity": "number",
-  "wind_speed": "number",
-  "description": "string"
-}
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/query` | POST | Send a query to the agent |
+| `/examples` | GET | Get example queries |
+| `/reset` | POST | Clear conversation history |
 
-#### `get_forecast`
-Returns 5-day weather forecast.
-```json
-{
-  "city": "string",
-  "forecasts": [
-    {
-      "date": "YYYY-MM-DD",
-      "temp_max": "number",
-      "temp_min": "number",
-      "condition": "string"
-    }
-  ]
-}
-```
+### MCP Server Endpoints
 
-#### `search_cities`
-Searches for cities by name.
-```json
-{
-  "results": [
-    {
-      "name": "string",
-      "country": "string",
-      "latitude": "number",
-      "longitude": "number"
-    }
-  ]
-}
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/tools` | GET | List available tools |
+| `/call` | POST | Call a tool (JSON-RPC 2.0) |
+
+### MCP Tools
+
+- **get_current_weather(city, country?)** - Current conditions (temp, humidity, wind, etc.)
+- **get_forecast(city, country?, days?)** - 5-day forecast with daily highs/lows
+- **search_cities(query, limit?)** - Search cities by name with coordinates
 
 ## Key Design Decisions
 
 ### MCP Server Architecture
 - **Separation of Concerns**: MCP Server handles only API integration, no business logic
+- **Protocol**: JSON-RPC 2.0 for standardized tool invocation
 - **Security**: API keys stored in environment variables, never exposed to frontend
-- **Extensibility**: Easy to add new weather data providers
+- **Extensibility**: Easy to add new weather data providers or tools
 
 ### LLM Agent Design
-- **Tool Definitions**: Clear, descriptive tool schemas following Claude's native tool use format
-- **Agentic Loop**: Handles tool calling, result processing, and multi-step reasoning
-- **Prompt Engineering**: System prompt guides agent to provide contextual weather analysis
-- **Error Handling**: Graceful fallbacks when tools fail or data is unavailable
+- **Native Tool Use**: Uses Claude's built-in tool_use feature (not framework wrappers)
+- **Agentic Loop**: Handles multi-step reasoning with up to 10 iterations
+- **Conversation Memory**: Maintains history for contextual follow-ups
+- **Prompt Engineering**: System prompt guides contextual analysis with formatting rules
 
 ### Frontend Design
-- **Simple & Focused**: Clean UI focused on core functionality
-- **Responsive**: Works on desktop and mobile
-- **Real-time**: Chat-like interface for natural interaction
-
-## Deployment Considerations
-
-### Docker Containerization
-```bash
-docker-compose up
-```
-Services run in isolated containers with proper networking.
-
-### Kubernetes
-- Create separate deployments for each service
-- Use ConfigMaps for environment configuration
-- Use Secrets for API keys
-
-### Serverless (AWS Lambda/Google Cloud Functions)
-- MCP Server: Deploy as Cloud Function or Lambda
-- Backend Agent: Deploy as Lambda/Cloud Function
-- Frontend: Host on S3/Cloud Storage with CDN
-
-## Documentation Philosophy
-
-### For Collaborating Developers
-- Clear README with setup instructions
-- Code comments for complex logic
-- Architecture diagrams in documentation
-- Example API requests/responses
-
-### For New Team Members
-- Step-by-step setup guide
-- Architecture overview with diagrams
-- Individual component documentation
-- Common troubleshooting guide
-
-## Development Notes
-
-### Adding New Weather Tools
-1. Add tool function to MCP Server
-2. Export from `tools.py`
-3. Register in LangChain backend
-4. Test with agent
-
-### Debugging
-```bash
-# Check MCP Server health
-curl http://localhost:8001/health
-
-# Check Backend Agent health
-curl http://localhost:8000/health
-
-# Test backend agent directly
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What is the weather in London?"}'
-```
+- **Agent Transparency**: Tool calls are visible to the user, showing the agent's reasoning
+- **No Framework Overhead**: Vanilla JS for simplicity and fast loading
+- **XSS Prevention**: HTML escaping before markdown conversion
 
 ## File Structure
 
@@ -257,42 +214,43 @@ curl -X POST http://localhost:8000/query \
 inmarket-agentic-weather/
 ├── README.md                 # This file
 ├── .env                      # Environment variables (git-ignored)
-├── requirements.txt          # Python dependencies
+├── requirements.txt          # Python dependencies (references subdirs)
+├── start-all.bat             # Windows startup script
 │
 ├── mcp-server/
-│   ├── requirements.txt
-│   ├── server.py            # Main MCP Server
-│   ├── tools.py             # Weather API tools
-│   └── config.py            # Configuration
+│   ├── requirements.txt      # flask, requests, python-dotenv
+│   ├── server.py             # MCP Server (JSON-RPC 2.0)
+│   ├── tools.py              # WeatherAPIClient with 3 tools
+│   └── config.py             # Environment configuration
 │
 ├── backend/
-│   ├── requirements.txt
-│   ├── app.py               # Flask application
-│   ├── agent.py             # LangChain agent setup
-│   ├── prompts.py           # Prompt templates
-│   └── config.py            # Configuration
+│   ├── requirements.txt      # anthropic, flask, flask-cors, requests
+│   ├── app.py                # Flask application + CORS
+│   ├── agent.py              # WeatherAgent (Claude tool use + agentic loop)
+│   ├── prompts.py            # System prompt + example queries
+│   └── config.py             # Environment configuration
 │
 └── frontend/
-    ├── index.html
-    ├── styles.css
-    └── app.js
+    ├── index.html             # Chat UI
+    ├── styles.css             # Styling (gradient theme, responsive)
+    └── app.js                 # API calls, markdown rendering, tool call display
 ```
+
+## Deployment Considerations
+
+- **Docker**: Each service as a container with docker-compose orchestration
+- **Kubernetes**: Separate deployments, ConfigMaps for env, Secrets for API keys
+- **Serverless**: MCP Server + Backend as Lambda/Cloud Functions, Frontend on S3/CDN
+- **Security**: Rate limiting, input validation, API key rotation via secrets management
 
 ## Troubleshooting
 
-**MCP Server won't start**
-- Check if port 8001 is available: `netstat -an | grep 8001`
-- Verify OPENWEATHER_API_KEY is set: `echo $OPENWEATHER_API_KEY`
-
-**Backend agent returns errors**
-- Verify MCP Server is running and accessible
-- Check ANTHROPIC_API_KEY is valid
-- Review backend logs for detailed error messages
-
-**Frontend can't connect to backend**
-- Check backend is running on correct port
-- Verify CORS headers in Flask app
-- Check browser console for network errors
+| Issue | Solution |
+|-------|----------|
+| MCP Server won't start | Check port 8001 is free; verify OPENWEATHER_API_KEY in .env |
+| Backend returns errors | Ensure MCP Server is running; check ANTHROPIC_API_KEY is valid |
+| Frontend can't connect | Verify backend is on port 8000; check browser console for CORS |
+| Agent returns empty | Check backend terminal logs for Claude API errors |
 
 ## License
 

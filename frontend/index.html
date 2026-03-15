@@ -9,8 +9,11 @@
 <body>
     <div class="container">
         <header class="header">
-            <h1>🌤️ Weather Agent</h1>
-            <p class="subtitle">Intelligent weather assistance powered by AI</p>
+            <div class="header-top">
+                <h1>Weather Agent</h1>
+                <button onclick="resetConversation()" class="reset-button" title="New Conversation">New Chat</button>
+            </div>
+            <p class="subtitle">Intelligent weather assistance powered by Claude AI + MCP</p>
         </header>
 
         <main class="chat-container">
@@ -18,6 +21,7 @@
                 <div class="welcome-message">
                     <h2>Welcome to Weather Agent</h2>
                     <p>Ask me about weather in any city. I'll provide current conditions, forecasts, and helpful insights.</p>
+                    <p class="feature-note">Multi-turn conversations supported - ask follow-up questions!</p>
                     <div class="example-queries">
                         <p>Try asking:</p>
                         <div id="examplesList"></div>
@@ -43,7 +47,7 @@
         </main>
 
         <footer class="footer">
-            <p>Using OpenWeather API | Powered by Claude AI</p>
+            <p>OpenWeather API | Claude AI | MCP Architecture</p>
         </footer>
     </div>
 

@@ -35,14 +35,41 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .header h1 {
     font-size: 24px;
     margin-bottom: 5px;
 }
 
+.reset-button {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.reset-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
 .subtitle {
     font-size: 14px;
     opacity: 0.9;
+}
+
+.feature-note {
+    font-size: 12px;
+    opacity: 0.7;
+    font-style: italic;
 }
 
 .chat-container {
@@ -310,6 +337,69 @@ body {
     color: #c62828;
     font-size: 13px;
     margin-bottom: 10px;
+}
+
+/* Tool calls visibility */
+.message.tool-calls {
+    justify-content: flex-start;
+    animation: fadeIn 0.3s ease;
+}
+
+.tool-calls-content {
+    background: #f0f4f8;
+    border: 1px solid #d0d8e8;
+    border-left: 3px solid #667eea;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    max-width: 80%;
+    color: #555;
+}
+
+.tool-calls-header {
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 6px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tool-icon {
+    margin-right: 4px;
+}
+
+.tool-call-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    flex-wrap: wrap;
+}
+
+.tool-call-item.success .tool-status-icon {
+    color: #4caf50;
+}
+
+.tool-call-item.error .tool-status-icon {
+    color: #f44336;
+}
+
+.tool-name {
+    font-weight: 600;
+    color: #333;
+    text-transform: capitalize;
+}
+
+.tool-input {
+    color: #888;
+    font-size: 11px;
+}
+
+.tool-preview {
+    color: #667eea;
+    font-size: 11px;
+    font-style: italic;
 }
 
 /* Responsive */

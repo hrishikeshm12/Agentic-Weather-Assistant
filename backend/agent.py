@@ -59,7 +59,7 @@ def call_mcp_tool(tool_name: str, **kwargs) -> Dict[str, Any]:
 
 
 class WeatherAgent:
-    """Weather agent using Claude's native tool use"""
+    """Weather agent using Claude's native tool use with conversation memory"""
 
     TOOLS = [
         {
@@ -132,17 +132,36 @@ class WeatherAgent:
 
         self.client = Anthropic(api_key=api_key)
         self.model = "claude-opus-4-1"
+        # Conversation history for multi-turn context
+        self.conversation_history = []
+        # Keep last N exchanges to avoid token limits
+        self.max_history = 10
 
-    def process_query(self, user_query: str) -> str:
-        """Process a user query with tool calling"""
+    def _trim_history(self):
+        """Keep conversation history within limits"""
+        if len(self.conversation_history) > self.max_history * 2:
+            self.conversation_history = self.conversation_history[-(self.max_history * 2):]
+
+    def clear_history(self):
+        """Clear conversation history"""
+        self.conversation_history = []
+
+    def process_query(self, user_query: str) -> Dict[str, Any]:
+        """Process a user query with tool calling. Returns response with tool call metadata."""
         logger.info(f"Processing query: {user_query}")
 
-        messages = [
-            {
-                "role": "user",
-                "content": user_query
-            }
-        ]
+        # Add user message to conversation history
+        self.conversation_history.append({
+            "role": "user",
+            "content": user_query
+        })
+        self._trim_history()
+
+        # Build messages from conversation history
+        messages = list(self.conversation_history)
+
+        # Track tool calls for visibility
+        tool_calls_log = []
 
         try:
             # Agentic loop
@@ -152,7 +171,7 @@ class WeatherAgent:
 
                 response = self.client.messages.create(
                     model=self.model,
-                    max_tokens=512,
+                    max_tokens=1024,
                     system=get_system_prompt(),
                     tools=self.TOOLS,
                     messages=messages
@@ -169,10 +188,22 @@ class WeatherAgent:
                 # Check if we're done
                 if response.stop_reason == "end_turn":
                     # Extract final text response
+                    final_text = "I have completed my analysis."
                     for block in response.content:
                         if hasattr(block, 'text'):
-                            return block.text
-                    return "I have completed my analysis."
+                            final_text = block.text
+                            break
+
+                    # Save assistant response to conversation history
+                    self.conversation_history.append({
+                        "role": "assistant",
+                        "content": final_text
+                    })
+
+                    return {
+                        "text": final_text,
+                        "tool_calls": tool_calls_log
+                    }
 
                 # Process tool uses
                 if response.stop_reason == "tool_use":
@@ -184,6 +215,13 @@ class WeatherAgent:
 
                             logger.info(f"Calling tool: {tool_name} with input: {tool_input}")
 
+                            # Log tool call for frontend visibility
+                            tool_call_entry = {
+                                "tool": tool_name,
+                                "input": tool_input,
+                                "status": "success"
+                            }
+
                             try:
                                 result = call_mcp_tool(tool_name, **tool_input)
                                 tool_results.append({
@@ -191,6 +229,7 @@ class WeatherAgent:
                                     "tool_use_id": block.id,
                                     "content": json.dumps(result)
                                 })
+                                tool_call_entry["result_preview"] = _summarize_result(tool_name, result)
                             except Exception as e:
                                 logger.error(f"Tool error: {str(e)}")
                                 tool_results.append({
@@ -198,6 +237,10 @@ class WeatherAgent:
                                     "tool_use_id": block.id,
                                     "content": f"Error: {str(e)}"
                                 })
+                                tool_call_entry["status"] = "error"
+                                tool_call_entry["result_preview"] = str(e)
+
+                            tool_calls_log.append(tool_call_entry)
 
                     # Add tool results
                     messages.append({
@@ -208,11 +251,34 @@ class WeatherAgent:
                     # Unexpected stop reason
                     break
 
-            return "I encountered an issue processing your request."
+            return {
+                "text": "I encountered an issue processing your request.",
+                "tool_calls": tool_calls_log
+            }
 
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
-            return f"I encountered an error: {str(e)}. Please try again."
+            return {
+                "text": f"I encountered an error: {str(e)}. Please try again.",
+                "tool_calls": tool_calls_log
+            }
+
+
+def _summarize_result(tool_name: str, result: Dict) -> str:
+    """Create a brief summary of tool result for frontend display"""
+    if tool_name == "get_current_weather":
+        city = result.get("city", "Unknown")
+        temp = result.get("temperature", "?")
+        condition = result.get("description", "")
+        return f"{city}: {temp}°C, {condition}"
+    elif tool_name == "get_forecast":
+        city = result.get("city", "Unknown")
+        days = len(result.get("forecasts", []))
+        return f"{city}: {days}-day forecast loaded"
+    elif tool_name == "search_cities":
+        count = len(result.get("results", []))
+        return f"Found {count} cities"
+    return "Data retrieved"
 
 
 def create_agent(api_key: Optional[str] = None) -> WeatherAgent:
@@ -220,6 +286,6 @@ def create_agent(api_key: Optional[str] = None) -> WeatherAgent:
     return WeatherAgent(api_key)
 
 
-def process_query(agent: WeatherAgent, user_query: str) -> str:
-    """Process a query through the agent"""
+def process_query(agent: WeatherAgent, user_query: str) -> Dict[str, Any]:
+    """Process a query through the agent. Returns dict with 'text' and 'tool_calls'."""
     return agent.process_query(user_query)

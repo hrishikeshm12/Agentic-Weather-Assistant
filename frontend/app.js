@@ -16,12 +16,21 @@ const examplesList = document.getElementById('examplesList');
 // State
 let isLoading = false;
 
+// Example queries (matching backend/prompts.py)
+const EXAMPLE_QUERIES = [
+    "What's the weather like in New York?",
+    "Will it rain in London tomorrow?",
+    "Compare the weather in Tokyo and Sydney",
+    "Is it a good day for outdoor activities in San Francisco?",
+    "What's the forecast for Paris next week?"
+];
+
 /**
  * Initialize the application
  */
 async function init() {
-    // Load example queries
-    await loadExamples();
+    // Render example queries
+    renderExamples();
 
     // Add event listeners
     queryForm.addEventListener('submit', handleQuerySubmit);
@@ -36,27 +45,23 @@ async function init() {
 }
 
 /**
- * Load example queries from backend
+ * Render example query buttons into the DOM
  */
-async function loadExamples() {
-    try {
-        const response = await fetch(`${API_URL}/examples`);
-        if (!response.ok) throw new Error('Failed to load examples');
-
-        const data = await response.json();
-        const examples = data.examples || [];
-
-        examplesList.innerHTML = examples
-            .map(
-                (example) =>
-                    `<button type="button" class="example-button" onclick="setQuery('${example.replace(/'/g, "\\'")}')">
-                        ${escapeHtml(example)}
-                    </button>`
-            )
-            .join('');
-    } catch (error) {
-        console.error('Error loading examples:', error);
+function renderExamples() {
+    const target = document.getElementById('examplesList');
+    if (!target) {
+        console.error('examplesList element not found');
+        return;
     }
+
+    let html = '';
+    for (let i = 0; i < EXAMPLE_QUERIES.length; i++) {
+        const example = EXAMPLE_QUERIES[i];
+        const safeExample = example.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        html += '<button type="button" class="example-button" onclick="setQuery(\'' + safeExample + '\')">' + example + '</button>';
+    }
+    target.innerHTML = html;
+    console.log('Rendered', EXAMPLE_QUERIES.length, 'examples into', target);
 }
 
 /**
@@ -110,6 +115,10 @@ async function sendQuery(query) {
         const data = await response.json();
 
         if (data.success) {
+            // Show tool calls if any (agent transparency)
+            if (data.tool_calls && data.tool_calls.length > 0) {
+                addToolCallsMessage(data.tool_calls);
+            }
             addMessage(data.response, 'agent');
         } else {
             addMessage(`Error: ${data.error || 'Unknown error'}`, 'error');
@@ -125,6 +134,44 @@ async function sendQuery(query) {
         setUILoading(false);
         queryInput.focus();
     }
+}
+
+/**
+ * Show tool calls the agent made (agent transparency)
+ */
+function addToolCallsMessage(toolCalls) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message tool-calls';
+
+    const content = document.createElement('div');
+    content.className = 'tool-calls-content';
+
+    const header = document.createElement('div');
+    header.className = 'tool-calls-header';
+    header.innerHTML = '<span class="tool-icon">&#9881;</span> Agent Actions';
+    content.appendChild(header);
+
+    toolCalls.forEach((tc) => {
+        const item = document.createElement('div');
+        item.className = `tool-call-item ${tc.status}`;
+
+        const toolName = tc.tool.replace(/_/g, ' ');
+        const inputStr = Object.entries(tc.input || {})
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', ');
+
+        item.innerHTML = `
+            <span class="tool-status-icon">${tc.status === 'success' ? '&#10003;' : '&#10007;'}</span>
+            <span class="tool-name">${escapeHtml(toolName)}</span>
+            <span class="tool-input">(${escapeHtml(inputStr)})</span>
+            ${tc.result_preview ? `<span class="tool-preview">&rarr; ${escapeHtml(tc.result_preview)}</span>` : ''}
+        `;
+        content.appendChild(item);
+    });
+
+    messageDiv.appendChild(content);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 /**
@@ -179,6 +226,33 @@ function setUILoading(loading) {
 }
 
 /**
+ * Reset conversation
+ */
+async function resetConversation() {
+    try {
+        await fetch(`${API_URL}/reset`, { method: 'POST' });
+    } catch (error) {
+        console.error('Error resetting conversation:', error);
+    }
+
+    // Clear chat UI and rebuild welcome message
+    chatMessages.innerHTML = `
+        <div class="welcome-message">
+            <h2>Welcome to Weather Agent</h2>
+            <p>Ask me about weather in any city. I'll provide current conditions, forecasts, and helpful insights.</p>
+            <p class="feature-note">Multi-turn conversations supported - ask follow-up questions!</p>
+            <div class="example-queries">
+                <p>Try asking:</p>
+                <div id="examplesList"></div>
+            </div>
+        </div>
+    `;
+
+    // Re-render example buttons into the new DOM element
+    renderExamples();
+}
+
+/**
  * Check backend health
  */
 async function checkBackendHealth() {
@@ -187,14 +261,14 @@ async function checkBackendHealth() {
         if (!response.ok) {
             console.warn('Backend health check failed');
             addMessage(
-                'ℹ️ Backend is initializing. Please wait a moment...',
+                'Backend is initializing. Please wait a moment...',
                 'system'
             );
         }
     } catch (error) {
         console.error('Backend not reachable:', error);
         addMessage(
-            '⚠️ Cannot reach the backend server. Make sure it is running on ' +
+            'Cannot reach the backend server. Make sure it is running on ' +
                 API_URL,
             'error'
         );
@@ -211,7 +285,6 @@ function parseMarkdown(text) {
     let html = div.innerHTML;
 
     // Now convert markdown (on already-escaped HTML)
-    // This prevents XSS while allowing markdown rendering
 
     // Bold: **text** -> <strong>text</strong>
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -222,11 +295,11 @@ function parseMarkdown(text) {
     // Code: `code` -> <code>code</code>
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-    // Handle paragraphs: split by double newlines, keep single newlines within paragraphs
+    // Handle paragraphs: split by double newlines
     let paragraphs = html.split(/\n\n+/);
     paragraphs = paragraphs.map(para => {
-        // Convert bullet points: - item -> • item (with proper spacing)
-        para = para.replace(/^\s*-\s+/gm, '• ');
+        // Convert bullet points: - item -> bullet item
+        para = para.replace(/^\s*-\s+/gm, '&bull; ');
         // Convert single newlines to <br>
         para = para.replace(/\n/g, '<br>');
         return `<div style="margin-bottom: 10px; line-height: 1.6;">${para}</div>`;
