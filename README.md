@@ -252,10 +252,8 @@ inmarket-agentic-weather/
 | Frontend can't connect | Verify backend is on port 8000; check browser console for CORS |
 | Agent returns empty | Check backend terminal logs for Claude API errors |
 
-## License
-
-MIT
 
 ## Contact
 
-InMarket AI Builder Interview Project
+Hrishikesh Magadum
+hrishikeshmagadum09@gmail.com
